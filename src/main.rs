@@ -37,13 +37,13 @@ fn get_file_path(args: &mut Vec<String>) -> Option<String> {
 }
 
 fn parse_args(args: &Vec<String>) -> Vec<String> {
-    let default_args: Vec<String> = vec!["l".to_string(), "w".to_string(), "c".to_string()];
+    let default_args = vec!["l".to_string(), "w".to_string(), "c".to_string()];
 
     if args.is_empty() {
         return default_args;
     }
 
-    let mut new_args: Vec<String> = Vec::new();
+    let mut new_args = Vec::new();
     for item in args {
         if item.starts_with("-") {
             for c in item.chars().skip(1) {
