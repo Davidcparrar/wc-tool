@@ -5,57 +5,40 @@ use std::io::{Read, Write};
 
 fn main() {
     let mut args: Vec<String> = env::args().skip(1).collect();
-    let file_path = if args.len() == 0
-        || args
-            .last()
-            .expect("List of args should not be empty")
-            .starts_with("-")
-    {
-        None
-    } else {
-        args.pop()
-    };
 
+    let file_path = get_file_path(&mut args);
     let flags = parse_args(&args);
-
-    let contents: Vec<u8> = if file_path.is_none() {
-        let mut buffer = Vec::new();
-        io::stdin()
-            .lock()
-            .read_to_end(&mut buffer)
-            .expect("Failed to read from stdin");
-        buffer
-    } else {
-        fs::read(file_path.clone().unwrap()).expect("Should have been able to read the file")
-    };
-
+    let contents = get_contents(&file_path);
     let contents_text = String::from_utf8_lossy(&contents).to_string();
 
-    let mut output = String::new();
+    let mut output: String = flags
+        .iter()
+        .map(|flag| create_response(flag, &contents, &contents_text))
+        .collect();
 
-    for item in flags {
-        let msg = match item.as_str() {
-            "w" => contents_text.split_whitespace().count().to_string(),
-            "c" => contents.len().to_string(),
-            "l" => contents_text.lines().count().to_string(),
-            "m" => contents_text.chars().count().to_string(),
-            _ => {
-                eprintln!("Invalid flag: {}", item);
-                "".to_string()
-            }
-        };
-        output.push_str(&(msg + " "));
-    }
     if let Some(file_path) = file_path {
         output.push_str(&(file_path + "\n"));
     }
     send_output(output);
 }
 
+fn get_file_path(args: &mut Vec<String>) -> Option<String> {
+    if args.is_empty()
+        || args
+            .last()
+            .expect("List of args should not be empty")
+            .starts_with('-')
+    {
+        None
+    } else {
+        args.pop()
+    }
+}
+
 fn parse_args(args: &Vec<String>) -> Vec<String> {
     let default_args: Vec<String> = vec!["l".to_string(), "w".to_string(), "c".to_string()];
 
-    if args.len() == 0 {
+    if args.is_empty() {
         return default_args;
     }
 
@@ -68,6 +51,33 @@ fn parse_args(args: &Vec<String>) -> Vec<String> {
         }
     }
     new_args
+}
+
+fn get_contents(file_path: &Option<String>) -> Vec<u8> {
+    if file_path.is_none() {
+        let mut buffer = Vec::new();
+        io::stdin()
+            .lock()
+            .read_to_end(&mut buffer)
+            .expect("Failed to read from stdin");
+        buffer
+    } else {
+        fs::read(file_path.clone().unwrap()).expect("Should have been able to read the file")
+    }
+}
+
+fn create_response(flag: &str, contents: &[u8], contents_text: &str) -> String {
+    let msg = match flag {
+        "w" => contents_text.split_whitespace().count().to_string(),
+        "c" => contents.len().to_string(),
+        "l" => contents_text.lines().count().to_string(),
+        "m" => contents_text.chars().count().to_string(),
+        _ => {
+            eprintln!("Invalid flag: {}", flag);
+            "".to_string()
+        }
+    };
+    msg + " "
 }
 
 fn send_output(output: String) {
