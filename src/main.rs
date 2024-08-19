@@ -1,20 +1,34 @@
 use std::env;
 use std::fs;
 use std::io;
-use std::io::Write;
+use std::io::{Read, Write};
 
 fn main() {
-    let mut args: Vec<String> = env::args().collect();
-    let number_of_args = args.len();
-
-    if number_of_args < 2 {
-        eprintln!("Usage: {} <file_path>", args[0].split("/").last().unwrap());
-        std::process::exit(1);
-    }
+    let mut args: Vec<String> = env::args().skip(1).collect();
+    let file_path = if args.len() == 0
+        || args
+            .last()
+            .expect("List of args should not be empty")
+            .starts_with("-")
+    {
+        None
+    } else {
+        args.pop()
+    };
 
     let flags = parse_args(&args);
-    let file_path = args.pop().unwrap();
-    let contents = fs::read(&file_path).expect("Should have been able to read the file");
+
+    let contents: Vec<u8> = if file_path.is_none() {
+        let mut buffer = Vec::new();
+        io::stdin()
+            .lock()
+            .read_to_end(&mut buffer)
+            .expect("Failed to read from stdin");
+        buffer
+    } else {
+        fs::read(file_path.clone().unwrap()).expect("Should have been able to read the file")
+    };
+
     let contents_text = String::from_utf8_lossy(&contents).to_string();
 
     let mut output = String::new();
@@ -32,14 +46,16 @@ fn main() {
         };
         output.push_str(&(msg + " "));
     }
-    output.push_str(&(file_path + "\n"));
+    if let Some(file_path) = file_path {
+        output.push_str(&(file_path + "\n"));
+    }
     send_output(output);
 }
 
 fn parse_args(args: &Vec<String>) -> Vec<String> {
     let default_args: Vec<String> = vec!["l".to_string(), "w".to_string(), "c".to_string()];
 
-    if args.len() == 2 {
+    if args.len() == 0 {
         return default_args;
     }
 
