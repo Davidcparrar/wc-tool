@@ -13,7 +13,8 @@ fn main() {
 
     let mut output: String = flags
         .iter()
-        .map(|flag| create_response(flag, &contents, &contents_text))
+        .filter_map(|flag| get_count(flag, &contents, &contents_text))
+        .map(|count| count.to_string() + " ")
         .collect();
 
     if let Some(file_path) = file_path {
@@ -66,18 +67,18 @@ fn get_contents(file_path: &Option<String>) -> Vec<u8> {
     }
 }
 
-fn create_response(flag: &str, contents: &[u8], contents_text: &str) -> String {
-    let msg = match flag {
-        "w" => contents_text.split_whitespace().count().to_string(),
-        "c" => contents.len().to_string(),
-        "l" => contents_text.lines().count().to_string(),
-        "m" => contents_text.chars().count().to_string(),
+fn get_count(flag: &str, contents: &[u8], contents_text: &str) -> Option<usize> {
+    let count = match flag {
+        "w" => contents_text.split_whitespace().count(),
+        "c" => contents.len(),
+        "l" => contents_text.lines().count(),
+        "m" => contents_text.chars().count(),
         _ => {
             eprintln!("Invalid flag: {}", flag);
-            "".to_string()
+            return None;
         }
     };
-    msg + " "
+    Some(count)
 }
 
 fn send_output(output: String) {
